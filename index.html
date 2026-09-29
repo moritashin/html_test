@@ -1,0 +1,997 @@
+<title>霞浦船票购票原型</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap">
+<style>
+  /* 布局概念:顶部流程对比 + 两部可点击手机原型并排(窄屏纵向堆叠) */
+  :root {
+    --bg: #F4F6F9;
+    --surface: #FFFFFF;
+    --ink: #16202E;
+    --muted: #5B6B7F;
+    --line: #E3E9F0;
+    --accent: #3F86E6;
+    --accent-soft: rgba(63, 134, 230, 0.1);
+    --sea: #0E7490;
+    --good: #2BB673;
+    --warn: #E8830C;
+    --radius: 14px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0E131A;
+      --surface: #161D27;
+      --ink: #E7EDF5;
+      --muted: #8FA0B5;
+      --line: #26303E;
+      --accent: #6FA8F5;
+      --accent-soft: rgba(111, 168, 245, 0.14);
+      --sea: #38B2C8;
+      --good: #4ADE97;
+      --warn: #F5A54A;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0E131A;
+    --surface: #161D27;
+    --ink: #E7EDF5;
+    --muted: #8FA0B5;
+    --line: #26303E;
+    --accent: #6FA8F5;
+    --accent-soft: rgba(111, 168, 245, 0.14);
+    --sea: #38B2C8;
+    --good: #4ADE97;
+    --warn: #F5A54A;
+    color-scheme: dark;
+  }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'DM Sans', -apple-system, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+    line-height: 1.6;
+  }
+  button { font-family: inherit; cursor: pointer; border: 0; background: none; color: inherit; padding: 0; }
+  button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+
+  .page { max-width: 1160px; margin: 0 auto; padding: 40px 20px 64px; }
+
+  /* ---------- 页头 ---------- */
+  .page-head { max-width: 760px; }
+  .eyebrow {
+    display: inline-block; font-size: 12px; letter-spacing: 0.12em; font-weight: 600;
+    color: var(--sea); text-transform: uppercase; margin-bottom: 10px;
+  }
+  .page-head h1 { font-size: clamp(24px, 4vw, 34px); line-height: 1.25; margin: 0 0 10px; text-wrap: balance; }
+  .lede { color: var(--muted); font-size: 15px; margin: 0; }
+
+  /* ---------- 流程对比条 ---------- */
+  .flows { display: grid; gap: 10px; margin: 28px 0 8px; }
+  .flow-row {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 12px 16px;
+  }
+  .flow-row .flow-name { font-weight: 700; font-size: 14px; min-width: 96px; }
+  .flow-row .flow-name small { display: block; font-weight: 500; color: var(--muted); font-size: 12px; }
+  .flow-row.old { border-style: dashed; opacity: 0.85; }
+  .step-chip {
+    font-size: 12.5px; background: var(--accent-soft); color: var(--accent);
+    border-radius: 999px; padding: 3px 11px; white-space: nowrap; font-weight: 500;
+  }
+  .flow-row.old .step-chip { background: transparent; color: var(--muted); border: 1px solid var(--line); }
+  .step-arrow { color: var(--muted); font-size: 12px; }
+  .flow-badge { margin-left: auto; font-size: 12px; font-weight: 700; color: var(--sea); white-space: nowrap; }
+  .flow-row.old .flow-badge { color: var(--muted); }
+
+  /* ---------- 手机区 ---------- */
+  .phones {
+    display: grid; gap: 32px; margin-top: 28px;
+    grid-template-columns: repeat(auto-fit, minmax(min(400px, 100%), 1fr));
+    align-items: start;
+  }
+  .phone-col { min-width: 0; display: flex; flex-direction: column; align-items: center; }
+  .col-head { width: 100%; max-width: 400px; margin-bottom: 16px; }
+  .plan-badge {
+    display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700;
+    border-radius: 999px; padding: 3px 12px; margin-bottom: 8px;
+  }
+  .plan-badge.a { background: var(--accent); color: #fff; }
+  .plan-badge.b { background: var(--sea); color: #fff; }
+  .col-head h2 { font-size: 19px; margin: 0 0 6px; }
+  .col-head p { font-size: 13.5px; color: var(--muted); margin: 0 0 10px; }
+  .click-meter {
+    display: inline-flex; align-items: baseline; gap: 6px;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 999px;
+    padding: 4px 14px; font-size: 12.5px; color: var(--muted);
+  }
+  .click-meter b { font-size: 18px; color: var(--accent); font-variant-numeric: tabular-nums; }
+
+  .phone {
+    width: min(380px, 100%); background: #10151C; border-radius: 48px; padding: 11px;
+    box-shadow: 0 24px 48px -18px rgba(15, 23, 42, 0.35);
+  }
+  /* 手机屏幕:设备模型,固定浅色应用主题 */
+  .screen {
+    position: relative; width: 100%; height: 700px; border-radius: 38px; overflow: hidden;
+    background: #F2F4F8; color: #1B2430; display: flex; flex-direction: column;
+    font-size: 14px; text-align: left;
+  }
+  .screen .statusbar {
+    height: 30px; flex: none; display: flex; align-items: center; justify-content: space-between;
+    padding: 0 22px; font-size: 12.5px; font-weight: 600; background: #fff;
+  }
+  .screen .statusbar .sicons { display: flex; gap: 5px; align-items: center; }
+  .screen .navbar {
+    flex: none; height: 46px; background: #fff; display: flex; align-items: center; justify-content: center;
+    position: relative; border-bottom: 1px solid #EDF0F5;
+  }
+  .screen .navbar .nav-title { font-size: 16px; font-weight: 600; }
+  .screen .navbar .nav-back {
+    position: absolute; left: 6px; top: 50%; transform: translateY(-50%);
+    font-size: 22px; line-height: 1; padding: 6px 10px; color: #1B2430;
+  }
+  .screen .sbody { flex: 1; overflow-y: auto; padding: 12px 12px 16px; scrollbar-width: thin; }
+  .screen .sbody.has-bar { padding-bottom: 92px; }
+
+  /* 屏幕内通用 */
+  .card { background: #fff; border-radius: 14px; padding: 14px; }
+  .sec-label { font-size: 12px; color: #8A94A6; margin: 14px 2px 8px; font-weight: 600; letter-spacing: 0.04em; }
+
+  .date-strip { display: flex; gap: 8px; overflow-x: auto; padding: 2px; scrollbar-width: none; }
+  .date-strip::-webkit-scrollbar { display: none; }
+  .date-item {
+    flex: none; width: 58px; padding: 8px 0 7px; border-radius: 12px; background: #fff;
+    text-align: center; line-height: 1.35; transition: background 0.15s, color 0.15s;
+  }
+  .date-item .dw { font-size: 11.5px; color: #8A94A6; }
+  .date-item .dd { font-size: 14.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .date-item .dot { width: 4px; height: 4px; border-radius: 50%; background: #3F86E6; margin: 2px auto 0; }
+  .date-item.on { background: #3F86E6; color: #fff; }
+  .date-item.on .dw { color: rgba(255, 255, 255, 0.75); }
+  .date-item.on .dot { background: #fff; }
+  .date-item.off { opacity: 0.42; }
+
+  .type-tag {
+    display: inline-block; font-size: 11px; font-weight: 700; border-radius: 5px;
+    padding: 1.5px 7px; color: #fff; vertical-align: 1px;
+  }
+
+  .stock-ok { color: #2BB673; }
+  .stock-low { color: #E8830C; }
+  .stock-out { color: #9AA3AF; }
+
+  /* 航线卡(方案A) */
+  .route-card { display: flex; align-items: center; gap: 10px; }
+  .route-main { flex: 1; min-width: 0; text-align: left; border-radius: 10px; padding: 2px 4px; }
+  .route-main:hover { background: #F2F6FC; }
+  .route-main .rl { font-size: 11px; color: #8A94A6; }
+  .route-main .rw { font-size: 20px; font-weight: 700; margin-top: 1px; font-variant-numeric: tabular-nums; }
+  .route-serv { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 7px; }
+  .srv-tag {
+    font-size: 11px; color: #5B6B7F; background: #F4F6F9; border-radius: 5px; padding: 2px 8px;
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .srv-tag .tdot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
+  .route-swap {
+    flex: none; width: 36px; height: 36px; border-radius: 50%; background: #EDF3FC;
+    display: flex; align-items: center; justify-content: center; color: #3F86E6; font-size: 16px;
+  }
+
+  .chip-row { display: flex; gap: 8px; overflow-x: auto; padding: 2px; scrollbar-width: none; }
+  .chip-row::-webkit-scrollbar { display: none; }
+  .fchip {
+    flex: none; font-size: 12.5px; font-weight: 500; border-radius: 999px; padding: 5px 13px;
+    background: #fff; color: #4A5568; border: 1px solid #E5EAF1; transition: all 0.15s;
+  }
+  .fchip.on { background: #1B2430; color: #fff; border-color: #1B2430; }
+
+  /* 班次卡 */
+  .sch-card {
+    display: flex; align-items: center; gap: 12px; background: #fff; border-radius: 14px;
+    padding: 13px 14px; margin-top: 10px; width: 100%; text-align: left; transition: box-shadow 0.15s;
+  }
+  .sch-card:not(.soldout):hover { box-shadow: 0 4px 14px -4px rgba(63, 134, 230, 0.35); }
+  .sch-card .stime { font-size: 21px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.1; }
+  .sch-card .smeta { flex: 1; min-width: 0; }
+  .sch-card .sroute { font-size: 12px; color: #8A94A6; margin-top: 3px; }
+  .sch-card .sright { text-align: right; flex: none; }
+  .sch-card .sprice { font-size: 17px; font-weight: 700; color: #E8542F; font-variant-numeric: tabular-nums; }
+  .sch-card .sprice small { font-size: 11px; font-weight: 500; }
+  .sch-card .sstock { font-size: 11.5px; margin-top: 2px; }
+  .sch-card.soldout { opacity: 0.55; }
+  .sch-card.picked { box-shadow: 0 0 0 2px #3F86E6 inset; }
+
+  .go-btn {
+    display: inline-block; background: #3F86E6; color: #fff; font-size: 12.5px; font-weight: 600;
+    border-radius: 999px; padding: 5px 14px; margin-top: 6px;
+  }
+
+  /* 空态 */
+  .empty-box { text-align: center; padding: 34px 20px; color: #8A94A6; }
+  .empty-box .et { font-size: 14px; font-weight: 600; color: #4A5568; margin-bottom: 4px; }
+  .empty-box .es { font-size: 12.5px; margin-bottom: 14px; }
+  .empty-actions { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+  .empty-actions .fchip { background: #EDF3FC; color: #3F86E6; border-color: transparent; font-weight: 600; }
+
+  /* 方案B 首页船型卡 */
+  .home-hero {
+    border-radius: 14px; padding: 16px 14px; color: #fff; margin-bottom: 4px;
+    background: linear-gradient(135deg, #2E6FD8, #3F86E6 55%, #5FA8F5);
+  }
+  .home-hero .ht { font-size: 17px; font-weight: 700; }
+  .home-hero .hs { font-size: 12px; opacity: 0.85; margin-top: 2px; }
+  .type-card {
+    width: 100%; text-align: left; background: #fff; border-radius: 14px; padding: 0;
+    margin-top: 10px; overflow: hidden; display: flex; align-items: stretch;
+  }
+  .type-card .tbar { flex: none; width: 5px; }
+  .type-card .tmain { flex: 1; min-width: 0; padding: 12px 12px; }
+  .type-card .tname { font-size: 15.5px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+  .type-card .tdesc { font-size: 12px; color: #8A94A6; margin-top: 3px; line-height: 1.5; }
+  .type-card .tfoot { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
+  .type-card .tprice { font-size: 14px; font-weight: 700; color: #E8542F; }
+  .type-card .tprice small { font-weight: 500; color: #8A94A6; font-size: 11px; }
+  .type-card .tgo { font-size: 12px; color: #3F86E6; font-weight: 600; }
+  .type-card:hover { box-shadow: 0 4px 14px -4px rgba(63, 134, 230, 0.35); }
+
+  /* 方案B check 页 */
+  .mode-row { display: flex; gap: 8px; align-items: center; }
+  .mode-seg { display: flex; background: #E9EDF3; border-radius: 999px; padding: 3px; }
+  .mode-seg button { font-size: 12.5px; font-weight: 600; border-radius: 999px; padding: 4px 16px; color: #5B6B7F; }
+  .mode-seg button.on { background: #fff; color: #1B2430; box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12); }
+  .mode-type { margin-left: auto; }
+  .wharf-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+  .wchip {
+    font-size: 12.5px; border-radius: 10px; padding: 7px 14px; background: #F4F6F9;
+    color: #4A5568; font-weight: 500; transition: all 0.15s;
+  }
+  .wchip.on { background: #3F86E6; color: #fff; }
+
+  .ret-block { animation: slideup 0.25s ease; }
+  @keyframes slideup { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+  /* 底部购买条 */
+  .buy-bar {
+    position: absolute; left: 0; right: 0; bottom: 0; background: #fff;
+    box-shadow: 0 -6px 20px -8px rgba(15, 23, 42, 0.18); padding: 12px 16px;
+    display: flex; align-items: center; gap: 12px; z-index: 5;
+  }
+  .buy-bar .binfo { flex: 1; min-width: 0; }
+  .buy-bar .bt { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .buy-bar .bp { font-size: 12px; color: #E8542F; font-weight: 700; margin-top: 1px; }
+  .buy-bar .bgo {
+    flex: none; background: #3F86E6; color: #fff; font-size: 14px; font-weight: 700;
+    border-radius: 999px; padding: 10px 26px;
+  }
+  .buy-bar .bgo:disabled { background: #C3CCD8; }
+
+  /* 弹层 */
+  .overlay {
+    position: absolute; inset: 0; background: rgba(15, 23, 42, 0.45); z-index: 10;
+    display: flex; flex-direction: column; justify-content: flex-end;
+  }
+  .sheet {
+    background: #fff; border-radius: 20px 20px 0 0; padding: 18px 18px 22px;
+    animation: sheetup 0.22s ease; max-height: 82%; overflow-y: auto;
+  }
+  @keyframes sheetup { from { transform: translateY(30px); opacity: 0.6; } to { transform: none; opacity: 1; } }
+  .sheet .sh-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .sheet .sh-title { font-size: 16px; font-weight: 700; }
+  .sheet .sh-close { font-size: 18px; color: #8A94A6; padding: 4px 8px; }
+  .sheet .sum-card { background: #F4F6F9; border-radius: 12px; padding: 12px 14px; margin-bottom: 12px; }
+  .sheet .sum-route { font-size: 15px; font-weight: 700; }
+  .sheet .sum-meta { font-size: 12.5px; color: #5B6B7F; margin-top: 4px; line-height: 1.7; }
+  .sheet .sh-label { font-size: 12px; color: #8A94A6; font-weight: 600; margin: 12px 0 8px; }
+  .ret-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+  .sheet .sh-foot { display: flex; align-items: center; gap: 12px; margin-top: 16px; }
+  .sheet .sh-price { flex: 1; font-size: 13px; color: #5B6B7F; }
+  .sheet .sh-price b { font-size: 20px; color: #E8542F; font-variant-numeric: tabular-nums; }
+  .sheet .sh-confirm {
+    background: #3F86E6; color: #fff; font-size: 15px; font-weight: 700;
+    border-radius: 999px; padding: 12px 34px;
+  }
+  .sheet .sh-confirm:disabled { background: #C3CCD8; }
+  .pick-group { font-size: 12px; color: #8A94A6; font-weight: 600; margin: 14px 2px 2px; }
+  .pick-list button {
+    display: flex; width: 100%; justify-content: space-between; align-items: center;
+    padding: 12px 4px; font-size: 14.5px; border-bottom: 1px solid #F0F2F6; text-align: left;
+  }
+  .pick-list .pr { font-weight: 600; font-variant-numeric: tabular-nums; }
+  .pick-list .pt { display: flex; gap: 5px; margin-top: 4px; flex-wrap: wrap; }
+  .pick-list .ck { color: #3F86E6; font-weight: 700; visibility: hidden; flex: none; }
+  .pick-list button.on .ck { visibility: visible; }
+
+  /* 成功页 */
+  .success {
+    position: absolute; inset: 0; background: #fff; z-index: 20;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; text-align: center;
+  }
+  .success .ok-ring {
+    width: 74px; height: 74px; border-radius: 50%; background: rgba(43, 182, 115, 0.12);
+    display: flex; align-items: center; justify-content: center; margin-bottom: 16px;
+  }
+  .success .st1 { font-size: 18px; font-weight: 700; }
+  .success .st2 { font-size: 13px; color: #8A94A6; margin-top: 6px; }
+  .success .st3 {
+    margin-top: 16px; font-size: 13px; background: #F4F6F9; border-radius: 999px; padding: 6px 16px;
+  }
+  .success .st3 b { color: #3F86E6; font-size: 17px; font-variant-numeric: tabular-nums; }
+  .success .retry {
+    margin-top: 22px; background: #3F86E6; color: #fff; font-size: 14px; font-weight: 700;
+    border-radius: 999px; padding: 10px 30px;
+  }
+  .success .hint-back { margin-top: 12px; font-size: 12px; color: #8A94A6; }
+
+  /* 每部手机下方的体验提示 */
+  .tips { width: 100%; max-width: 400px; margin: 16px 0 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+  .tips li { font-size: 12.5px; color: var(--muted); padding-left: 18px; position: relative; }
+  .tips li::before { content: ''; position: absolute; left: 2px; top: 8px; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+
+  .page-foot { margin-top: 40px; font-size: 12.5px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 16px; max-width: 760px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition: none !important; animation: none !important; }
+  }
+</style>
+
+<div class="page">
+  <header class="page-head">
+    <span class="eyebrow">交互原型 · 模拟数据</span>
+    <h1>霞浦海上游 · 船票购票流程优化</h1>
+    <p class="lede">下面两部手机原型均可真实点击操作。左侧为方案 A「班次聚合一站式购票」,右侧为方案 B「保留船型入口的体验优化版」。码头选择已改为按「航线」选择——一条航线直接确定出发与到达码头,避免选出互不连通的码头对。每部手机带点击计数,可直观对比流程长短。</p>
+  </header>
+
+  <section class="flows" aria-label="流程对比">
+    <div class="flow-row old">
+      <span class="flow-name">现状流程<small>7+ 步 · 2~3 次跳页</small></span>
+      <span class="step-chip">选船型</span><span class="step-arrow">→</span>
+      <span class="step-chip">选日期</span><span class="step-arrow">→</span>
+      <span class="step-chip">选乡镇</span><span class="step-arrow">→</span>
+      <span class="step-chip">选出发/到达码头</span><span class="step-arrow">→</span>
+      <span class="step-chip">勾选船只</span><span class="step-arrow">→</span>
+      <span class="step-chip">往返再重复一遍</span><span class="step-arrow">→</span>
+      <span class="step-chip">下单</span>
+      <span class="flow-badge">默认今天,常遇“暂无船舶”</span>
+    </div>
+    <div class="flow-row">
+      <span class="flow-name">方案 A<small>班次聚合 · 2~3 步</small></span>
+      <span class="step-chip">打开即有班次(默认常用航线+有票日)</span><span class="step-arrow">→</span>
+      <span class="step-chip">点班次,底部确认</span><span class="step-arrow">→</span>
+      <span class="step-chip">下单</span>
+      <span class="flow-badge">船型降级为筛选条件</span>
+    </div>
+    <div class="flow-row">
+      <span class="flow-name">方案 B<small>船型入口优化 · 3~4 步</small></span>
+      <span class="step-chip">点船型卡片直达</span><span class="step-arrow">→</span>
+      <span class="step-chip">航线/日期已默认,点班次</span><span class="step-arrow">→</span>
+      <span class="step-chip">往返同页选</span><span class="step-arrow">→</span>
+      <span class="step-chip">下单</span>
+      <span class="flow-badge">纯前端改动,最快上线</span>
+    </div>
+  </section>
+
+  <main class="phones">
+    <!-- ============ 方案 A ============ -->
+    <section class="phone-col">
+      <div class="col-head">
+        <span class="plan-badge a">方案 A</span>
+        <h2>班次聚合一站式购票</h2>
+        <p>按用户心智组织:选航线 → 选日期 → 点班次。航线一次确定两个码头,船型从必经步骤降级为筛选 chips,班次按发船时间聚合同页对比。</p>
+        <span class="click-meter">本次体验已点击 <b id="countA">0</b> 次</span>
+      </div>
+      <div class="phone">
+        <div class="screen" id="screenA">
+          <div class="statusbar">
+            <span>9:41</span>
+            <span class="sicons">
+              <svg width="16" height="11" viewBox="0 0 16 11" fill="currentColor"><rect x="0" y="7" width="3" height="4" rx="0.5"/><rect x="4.5" y="4.5" width="3" height="6.5" rx="0.5"/><rect x="9" y="2" width="3" height="9" rx="0.5"/><rect x="13" y="0" width="3" height="11" rx="0.5" opacity="0.35"/></svg>
+              <svg width="22" height="11" viewBox="0 0 22 11"><rect x="0.5" y="0.5" width="18" height="10" rx="3" fill="none" stroke="currentColor" opacity="0.4"/><rect x="2" y="2" width="13" height="7" rx="1.5" fill="currentColor"/><rect x="20" y="3.5" width="2" height="4" rx="1" fill="currentColor" opacity="0.4"/></svg>
+            </span>
+          </div>
+          <div class="navbar"><span class="nav-title">船票购买</span></div>
+          <div class="sbody" id="bodyA">
+            <div class="card route-card">
+              <button class="route-main" data-act="pickRoute">
+                <div class="rl">航线(点击更换)</div>
+                <div class="rw" id="routeNameA"></div>
+                <div class="route-serv" id="routeServA"></div>
+              </button>
+              <button class="route-swap" data-act="swap" aria-label="换成反向航线">⇄</button>
+            </div>
+            <div class="sec-label">出发日期(仅展示有票日期可选)</div>
+            <div class="date-strip" id="datesA"></div>
+            <div class="sec-label">船型筛选</div>
+            <div class="chip-row" id="chipsA"></div>
+            <div class="sec-label" id="listLabelA">班次列表</div>
+            <div id="listA"></div>
+          </div>
+          <div id="overlayA"></div>
+        </div>
+      </div>
+      <ul class="tips">
+        <li>进页默认选中「常用航线 + 最近有票日」,班次列表即刻可见</li>
+        <li>点航线卡可按「上岛 / 离岛」分组换航线,⇄ 一键换反向航线</li>
+        <li>点班次卡片 → 底部确认(快艇可选往返)→ 直达下单页</li>
+        <li>对比点击计数:全流程约 2~4 次点击</li>
+      </ul>
+    </section>
+
+    <!-- ============ 方案 B ============ -->
+    <section class="phone-col">
+      <div class="col-head">
+        <span class="plan-badge b">方案 B</span>
+        <h2>船型入口 · 体验优化版</h2>
+        <p>保留现有“先选船型”结构,但点卡片直达班次页;原来的出发/到达码头两组选择合并为一组航线 chips,一次选定;往返同页完成,不再跳转返程页。</p>
+        <span class="click-meter">本次体验已点击 <b id="countB">0</b> 次</span>
+      </div>
+      <div class="phone">
+        <div class="screen" id="screenB">
+          <div class="statusbar">
+            <span>9:41</span>
+            <span class="sicons">
+              <svg width="16" height="11" viewBox="0 0 16 11" fill="currentColor"><rect x="0" y="7" width="3" height="4" rx="0.5"/><rect x="4.5" y="4.5" width="3" height="6.5" rx="0.5"/><rect x="9" y="2" width="3" height="9" rx="0.5"/><rect x="13" y="0" width="3" height="11" rx="0.5" opacity="0.35"/></svg>
+              <svg width="22" height="11" viewBox="0 0 22 11"><rect x="0.5" y="0.5" width="18" height="10" rx="3" fill="none" stroke="currentColor" opacity="0.4"/><rect x="2" y="2" width="13" height="7" rx="1.5" fill="currentColor"/><rect x="20" y="3.5" width="2" height="4" rx="1" fill="currentColor" opacity="0.4"/></svg>
+            </span>
+          </div>
+          <div class="navbar" id="navbarB"><span class="nav-title" id="navTitleB">霞浦海上游</span></div>
+          <div class="sbody" id="bodyB"></div>
+          <div id="overlayB"></div>
+        </div>
+      </div>
+      <ul class="tips">
+        <li>点船型卡片直接进入班次页(省掉单独的“请选择码头与时间”按钮)</li>
+        <li>航线 chips 一次选定两个码头,默认选中该船型主航线</li>
+        <li>日期默认最近有票日;无票日期按船型计算并直接置灰</li>
+        <li>点船卡 → 底部浮条即买;快艇选“往返”后同页下半屏选返程</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer class="page-foot">
+    原型内航线、船型、票价与班次均为模拟数据(名称取自现行版本:积石 / 东壁 / 三沙 / 北礵,客渡船 / 快艇拼船 / 山海交响号 / 北礵之星),仅用于演示交互流程与信息架构,不代表视觉终稿。「航线」即(出发码头, 到达码头)组合,前端可由现有 getWharfs + getEndWharfs 接口聚合生成,无需新接口。方案 B 的改动可全部落在现有 check.vue / check-return.vue / ticket.vue 三个页面内;方案 A 建议另立新页面,聚合查询可先由前端并发现有 getShippingDateRecord 接口实现。
+  </footer>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ================= 模拟数据 ================= */
+  var WHARFS = {
+    jishi:    { name: '积石码头', short: '积石' },
+    dongbi:   { name: '东壁码头', short: '东壁' },
+    sansha:   { name: '三沙避风港', short: '三沙' },
+    beishuang:{ name: '北礵码头', short: '北礵' }
+  };
+  var ISLAND = 'beishuang';
+  var TYPES = {
+    ferry: { key: 'ferry', name: '客渡船',     color: '#2BB673', price: 30, child: 15, dur: '约80分钟',
+             froms: ['jishi'], tos: ['beishuang'], roundtrip: false,
+             times: ['07:30', '09:40', '13:20', '15:30'], retTimes: ['09:00', '11:00', '14:40', '17:00'],
+             desc: '固定航线 · 固定班次 · 定点登船' },
+    speed: { key: 'speed', name: '快艇拼船',   color: '#3AB6FA', price: 50, child: 25, dur: '约30分钟',
+             froms: ['dongbi', 'sansha'], tos: ['beishuang'], roundtrip: true,
+             times: ['08:00', '09:30', '11:00', '13:00', '14:30', '16:00'],
+             retTimes: ['08:45', '10:15', '13:45', '15:15', '16:45'],
+             desc: '北礵往返接驳 · 需二次确认拼船' },
+    sym:   { key: 'sym',   name: '山海交响号', color: '#5F9CEF', price: 68, child: 34, dur: '约50分钟',
+             froms: ['sansha'], tos: ['beishuang'], roundtrip: false,
+             times: ['10:00', '14:00'], retTimes: ['12:00', '16:30'],
+             desc: '休闲观光 · 可当天往返' },
+    star:  { key: 'star',  name: '北礵之星',   color: '#F59E4C', price: 58, child: 29, dur: '约45分钟',
+             froms: ['sansha'], tos: ['beishuang'], roundtrip: false,
+             times: ['09:00', '13:30'], retTimes: ['11:30', '16:00'],
+             desc: '三沙至北礵 · 定点登船' }
+  };
+  var TYPE_KEYS = ['ferry', 'speed', 'sym', 'star'];
+  // 有票日模式:今天无票(演示智能默认),第4天无票
+  var AVAIL = [false, true, true, false, true, true, true];
+  var WEEK = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+
+  /* ---- 航线:由船型的码头集聚合而成(对应 getWharfs + getEndWharfs 的聚合) ---- */
+  var ROUTES = [];
+  function addRoute(from, to, typeKey) {
+    for (var i = 0; i < ROUTES.length; i++) {
+      if (ROUTES[i].from === from && ROUTES[i].to === to) { ROUTES[i].types.push(typeKey); return; }
+    }
+    ROUTES.push({ id: from + '-' + to, from: from, to: to, types: [typeKey] });
+  }
+  TYPE_KEYS.forEach(function (k) {
+    var t = TYPES[k];
+    t.froms.forEach(function (f) { t.tos.forEach(function (to) { addRoute(f, to, k); }); });
+    t.froms.forEach(function (f) { t.tos.forEach(function (to) { addRoute(to, f, k); }); });
+  });
+  // 排序:上岛航线在前,离岛在后
+  ROUTES.sort(function (a, b) {
+    var ai = a.to === ISLAND ? 0 : 1, bi = b.to === ISLAND ? 0 : 1;
+    return ai - bi;
+  });
+  function routeById(id) {
+    for (var i = 0; i < ROUTES.length; i++) if (ROUTES[i].id === id) return ROUTES[i];
+    return ROUTES[0];
+  }
+  function routeLabel(r) { return WHARFS[r.from].short + ' → ' + WHARFS[r.to].short; }
+  function reverseRoute(r) {
+    for (var i = 0; i < ROUTES.length; i++) {
+      if (ROUTES[i].from === r.to && ROUTES[i].to === r.from) return ROUTES[i];
+    }
+    return null;
+  }
+  function routesForType(k) {
+    return ROUTES.filter(function (r) { return r.types.indexOf(k) > -1; });
+  }
+  function servTagsHtml(r) {
+    return r.types.map(function (k) {
+      return '<span class="srv-tag"><span class="tdot" style="background:' + TYPES[k].color + '"></span>' + TYPES[k].name + '</span>';
+    }).join('');
+  }
+
+  function buildDays() {
+    var arr = [], t = new Date();
+    for (var i = 0; i < 7; i++) {
+      var d = new Date(t.getFullYear(), t.getMonth(), t.getDate() + i);
+      arr.push({
+        i: i, m: d.getMonth() + 1, d: d.getDate(),
+        week: i === 0 ? '今天' : (i === 1 ? '明天' : WEEK[d.getDay()])
+      });
+    }
+    return arr;
+  }
+  var DAYS = buildDays();
+
+  // 不同船型各自的可售日(对应真实接口 getShippingDate 按 shipping_type 查询)
+  function typeAvail(typeKey, di) {
+    if (!AVAIL[di]) return false;
+    if (typeKey === 'sym') return di % 2 === 0;
+    if (typeKey === 'star') return di % 3 !== 1;
+    return true;
+  }
+  function nearestAvail(typeKey) {
+    for (var i = 0; i < 7; i++) {
+      var ok = typeKey ? typeAvail(typeKey, i) : TYPE_KEYS.some(function (k) { return typeAvail(k, i); });
+      if (ok) return i;
+    }
+    return 0;
+  }
+  // 确定性伪随机余票
+  function stockOf(di, time, salt) {
+    var h = 0;
+    for (var j = 0; j < time.length; j++) h = (h * 31 + time.charCodeAt(j)) % 997;
+    return (h + di * 17 + salt * 29) % 37;
+  }
+  // 某船型在某日期、某航线的班次(自动识别往返方向)
+  function schedules(typeKey, di, from, to) {
+    var t = TYPES[typeKey], times = null;
+    if (t.froms.indexOf(from) > -1 && t.tos.indexOf(to) > -1) times = t.times;
+    else if (t.froms.indexOf(to) > -1 && t.tos.indexOf(from) > -1) times = t.retTimes;
+    if (!times || !typeAvail(typeKey, di)) return [];
+    return times.map(function (time, idx) {
+      return { type: typeKey, time: time, stock: stockOf(di, time, idx), price: t.price, child: t.child, dur: t.dur };
+    });
+  }
+  function stockHtml(stock) {
+    if (stock === 0) return '<span class="sstock stock-out">已售罄</span>';
+    if (stock <= 5) return '<span class="sstock stock-low">仅剩 ' + stock + ' 张</span>';
+    return '<span class="sstock stock-ok">余票 ' + stock + '</span>';
+  }
+  function dayLabel(di) {
+    var d = DAYS[di];
+    return d.m + '月' + d.d + '日 ' + d.week;
+  }
+
+  /* ================= 点击计数 ================= */
+  var counts = { A: 0, B: 0 };
+  function bump(which) {
+    counts[which]++;
+    document.getElementById('count' + which).textContent = counts[which];
+  }
+
+  /* ================= 方案 A ================= */
+  var stateA = { routeId: 'dongbi-beishuang', di: nearestAvail(null), chip: 'all', picking: false, sheet: null, success: false };
+
+  function curRouteA() { return routeById(stateA.routeId); }
+
+  function renderRouteA() {
+    var r = curRouteA();
+    document.getElementById('routeNameA').textContent = routeLabel(r);
+    document.getElementById('routeServA').innerHTML = servTagsHtml(r);
+  }
+
+  function renderDatesA() {
+    var html = '';
+    DAYS.forEach(function (d) {
+      var ok = stateA.chip === 'all'
+        ? TYPE_KEYS.some(function (k) { return typeAvail(k, d.i); })
+        : typeAvail(stateA.chip, d.i);
+      html += '<button class="date-item' + (d.i === stateA.di ? ' on' : '') + (ok ? '' : ' off') + '"' +
+        ' data-act="date" data-di="' + d.i + '"' + (ok ? '' : ' disabled') + '>' +
+        '<div class="dw">' + d.week + '</div><div class="dd">' + d.m + '/' + d.d + '</div>' +
+        (ok ? '<div class="dot"></div>' : '<div class="dot" style="visibility:hidden"></div>') + '</button>';
+    });
+    document.getElementById('datesA').innerHTML = html;
+  }
+
+  function renderChipsA() {
+    var html = '<button class="fchip' + (stateA.chip === 'all' ? ' on' : '') + '" data-act="chip" data-k="all">全部船型</button>';
+    TYPE_KEYS.forEach(function (k) {
+      html += '<button class="fchip' + (stateA.chip === k ? ' on' : '') + '" data-act="chip" data-k="' + k + '">' + TYPES[k].name + '</button>';
+    });
+    document.getElementById('chipsA').innerHTML = html;
+  }
+
+  function renderListA() {
+    var r = curRouteA();
+    var keys = stateA.chip === 'all' ? TYPE_KEYS : [stateA.chip];
+    var items = [];
+    keys.forEach(function (k) {
+      schedules(k, stateA.di, r.from, r.to).forEach(function (s) { items.push(s); });
+    });
+    items.sort(function (a, b) { return a.time < b.time ? -1 : 1; });
+    document.getElementById('listLabelA').textContent =
+      '班次列表 · ' + dayLabel(stateA.di) + ' · ' + routeLabel(r);
+
+    var box = document.getElementById('listA');
+    if (!items.length) {
+      var near = nearestAvail(stateA.chip === 'all' ? null : stateA.chip);
+      var rev = reverseRoute(r);
+      var sugg = '';
+      if (stateA.chip !== 'all') {
+        routesForType(stateA.chip).slice(0, 2).forEach(function (rt) {
+          sugg += '<button class="fchip" data-act="route" data-k="' + rt.id + '">' + routeLabel(rt) + '</button>';
+        });
+      }
+      box.innerHTML =
+        '<div class="card empty-box">' +
+          '<div class="et">当前条件下暂无班次</div>' +
+          '<div class="es">' + routeLabel(r) + ' · ' + dayLabel(stateA.di) +
+            (stateA.chip !== 'all' ? ' · ' + TYPES[stateA.chip].name : '') + '</div>' +
+          '<div class="empty-actions">' +
+            (near !== stateA.di ? '<button class="fchip" data-act="jumpDate" data-di="' + near + '">' + dayLabel(near) + ' 有票</button>' : '') +
+            (stateA.chip !== 'all' ? '<button class="fchip" data-act="chip" data-k="all">查看全部船型</button>' : '') +
+            sugg +
+            (rev && stateA.chip === 'all' ? '<button class="fchip" data-act="swap">试试 ' + routeLabel(rev) + '</button>' : '') +
+          '</div>' +
+        '</div>';
+      return;
+    }
+    var html = '';
+    items.forEach(function (s, idx) {
+      var t = TYPES[s.type], sold = s.stock === 0;
+      html += '<button class="sch-card' + (sold ? ' soldout' : '') + '" data-act="openSheet" data-idx="' + idx + '"' + (sold ? ' disabled' : '') + '>' +
+        '<div class="stime">' + s.time + '</div>' +
+        '<div class="smeta">' +
+          '<span class="type-tag" style="background:' + t.color + '">' + t.name + '</span>' +
+          '<div class="sroute">' + routeLabel(r) + ' · ' + s.dur + '</div>' +
+          stockHtml(s.stock) +
+        '</div>' +
+        '<div class="sright"><div class="sprice"><small>¥</small>' + s.price + '</div><span class="go-btn">购票</span></div>' +
+      '</button>';
+    });
+    box.innerHTML = html;
+    box.__items = items;
+  }
+
+  function renderOverlayA() {
+    var ov = document.getElementById('overlayA');
+    if (stateA.picking) {
+      var groups = [
+        { label: '上岛 · 前往北礵', list: ROUTES.filter(function (r) { return r.to === ISLAND; }) },
+        { label: '离岛 · 返回大陆', list: ROUTES.filter(function (r) { return r.to !== ISLAND; }) }
+      ];
+      var html = '<div class="overlay" data-act="closeOverlay"><div class="sheet" data-stop="1">' +
+        '<div class="sh-head"><span class="sh-title">选择航线</span>' +
+        '<button class="sh-close" data-act="closeOverlay">✕</button></div>';
+      groups.forEach(function (g) {
+        html += '<div class="pick-group">' + g.label + '</div><div class="pick-list">';
+        g.list.forEach(function (rt) {
+          html += '<button class="' + (stateA.routeId === rt.id ? 'on' : '') + '" data-act="route" data-k="' + rt.id + '">' +
+            '<span><span class="pr">' + routeLabel(rt) + '</span><span class="pt">' + servTagsHtml(rt) + '</span></span>' +
+            '<span class="ck">✓</span></button>';
+        });
+        html += '</div>';
+      });
+      ov.innerHTML = html + '</div>';
+      return;
+    }
+    if (stateA.sheet) {
+      var sh = stateA.sheet, t = TYPES[sh.item.type], r = curRouteA();
+      var canRound = t.roundtrip;
+      var retOpts = [];
+      if (canRound && sh.mode === 'round') {
+        retOpts = schedules(t.key, stateA.di, r.to, r.from)
+          .map(function (s) { return s.time; })
+          .filter(function (rt) { return rt > sh.item.time; });
+      }
+      var total = sh.item.price * (sh.mode === 'round' ? 2 : 1);
+      ov.innerHTML =
+        '<div class="overlay" data-act="closeOverlay"><div class="sheet" data-stop="1">' +
+          '<div class="sh-head"><span class="sh-title">确认班次</span>' +
+          '<button class="sh-close" data-act="closeOverlay">✕</button></div>' +
+          '<div class="sum-card">' +
+            '<div class="sum-route">' + WHARFS[r.from].name + ' → ' + WHARFS[r.to].name + '</div>' +
+            '<div class="sum-meta">' + dayLabel(stateA.di) + ' · ' + sh.item.time + ' 发船 · ' +
+              '<span class="type-tag" style="background:' + t.color + '">' + t.name + '</span> · ' + sh.item.dur + '<br>' +
+              '成人 ¥' + sh.item.price + ' / 儿童 ¥' + sh.item.child + ' · 余票 ' + sh.item.stock + ' 张</div>' +
+          '</div>' +
+          (canRound ?
+            '<div class="sh-label">行程类型</div>' +
+            '<div class="mode-seg">' +
+              '<button class="' + (sh.mode === 'one' ? 'on' : '') + '" data-act="mode" data-m="one">单程</button>' +
+              '<button class="' + (sh.mode === 'round' ? 'on' : '') + '" data-act="mode" data-m="round">往返</button>' +
+            '</div>' : '') +
+          (canRound && sh.mode === 'round' ?
+            (retOpts.length ?
+              '<div class="sh-label">选择返程时间(同日 · ' + routeLabel(reverseRoute(r) || r) + ')</div><div class="ret-chips">' +
+              retOpts.map(function (rt) {
+                return '<button class="wchip' + (sh.ret === rt ? ' on' : '') + '" data-act="ret" data-t="' + rt + '">' + rt + '</button>';
+              }).join('') + '</div>'
+              : '<div class="sh-label" style="color:#E8830C">当日已无更晚返程班次,请选更早的去程或改单程</div>')
+            : '') +
+          '<div class="sh-foot">' +
+            '<div class="sh-price">合计 <b>¥' + total + '</b> ' + (sh.mode === 'round' ? '(往返)' : '(单程)') + '</div>' +
+            '<button class="sh-confirm" data-act="confirm"' + ((sh.mode === 'round' && !sh.ret) ? ' disabled' : '') + '>去下单</button>' +
+          '</div>' +
+        '</div></div>';
+      return;
+    }
+    if (stateA.success) {
+      ov.innerHTML =
+        '<div class="success">' +
+          '<div class="ok-ring"><svg width="36" height="36" viewBox="0 0 36 36"><path d="M10 18.5l5.5 5.5L26 12.5" fill="none" stroke="#2BB673" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>' +
+          '<div class="st1">已到达订单确认页</div>' +
+          '<div class="st2">(原型演示到此为止,后续为填写乘客与支付)</div>' +
+          '<div class="st3">从打开本页到下单,共 <b>' + counts.A + '</b> 次点击</div>' +
+          '<button class="retry" data-act="reset">重新体验</button>' +
+          '<div class="hint-back">也可切换航线 / 日期继续体验</div>' +
+        '</div>';
+      return;
+    }
+    ov.innerHTML = '';
+  }
+
+  function renderA() {
+    renderRouteA(); renderDatesA(); renderChipsA(); renderListA(); renderOverlayA();
+  }
+
+  document.getElementById('screenA').addEventListener('click', function (e) {
+    var stop = e.target.closest('[data-stop]');
+    var el = e.target.closest('[data-act]');
+    if (!el) return;
+    var act = el.getAttribute('data-act');
+    if (act === 'closeOverlay' && stop && e.target !== el) return;
+    bump('A');
+    var s = stateA;
+    switch (act) {
+      case 'pickRoute': s.picking = true; break;
+      case 'route':
+        s.routeId = el.getAttribute('data-k'); s.picking = false; break;
+      case 'swap': {
+        var rev = reverseRoute(curRouteA());
+        if (rev) s.routeId = rev.id;
+        s.picking = false;
+        break;
+      }
+      case 'closeOverlay': s.picking = false; s.sheet = null; break;
+      case 'date': case 'jumpDate':
+        s.di = parseInt(el.getAttribute('data-di'), 10); s.sheet = null; break;
+      case 'chip': {
+        s.chip = el.getAttribute('data-k');
+        var ok = s.chip === 'all'
+          ? TYPE_KEYS.some(function (k2) { return typeAvail(k2, s.di); })
+          : typeAvail(s.chip, s.di);
+        if (!ok) s.di = nearestAvail(s.chip === 'all' ? null : s.chip);
+        break;
+      }
+      case 'openSheet': {
+        var items = document.getElementById('listA').__items || [];
+        var item = items[parseInt(el.getAttribute('data-idx'), 10)];
+        s.sheet = { item: item, mode: 'one', ret: null };
+        break;
+      }
+      case 'mode': {
+        s.sheet.mode = el.getAttribute('data-m');
+        s.sheet.ret = null;
+        if (s.sheet.mode === 'round') {
+          var r = curRouteA();
+          var opts = schedules(s.sheet.item.type, s.di, r.to, r.from)
+            .map(function (x) { return x.time; })
+            .filter(function (rt) { return rt > s.sheet.item.time; });
+          s.sheet.ret = opts[0] || null;
+        }
+        break;
+      }
+      case 'ret': s.sheet.ret = el.getAttribute('data-t'); break;
+      case 'confirm': s.sheet = null; s.success = true; break;
+      case 'reset':
+        counts.A = 0; document.getElementById('countA').textContent = '0';
+        s = { routeId: 'dongbi-beishuang', di: nearestAvail(null), chip: 'all', picking: false, sheet: null, success: false };
+        break;
+    }
+    stateA = s;
+    renderA();
+  });
+
+  /* ================= 方案 B ================= */
+  var stateB = { screen: 'home', type: null, routeId: null, di: 0, mode: 'one', out: null, ret: null, success: false };
+
+  function curRouteB() { return routeById(stateB.routeId); }
+
+  function renderB() {
+    var body = document.getElementById('bodyB');
+    var nav = document.getElementById('navbarB');
+    document.getElementById('overlayB').innerHTML = stateB.success ? successHtmlB() : '';
+    if (stateB.screen === 'home') {
+      nav.innerHTML = '<span class="nav-title">霞浦海上游</span>';
+      body.classList.remove('has-bar');
+      var html = '<div class="home-hero"><div class="ht">请选择出行船型</div>' +
+        '<div class="hs">点击卡片,直接查看该船型的班次与余票</div></div>';
+      TYPE_KEYS.forEach(function (k) {
+        var t = TYPES[k];
+        var rts = routesForType(k);
+        var main = rts.length ? routeLabel(rts[0]) : '';
+        html += '<button class="type-card" data-act="enter" data-k="' + k + '">' +
+          '<span class="tbar" style="background:' + t.color + '"></span>' +
+          '<span class="tmain">' +
+            '<span class="tname">' + t.name + (t.roundtrip ? ' <span class="type-tag" style="background:' + t.color + '">可往返</span>' : '') + '</span>' +
+            '<span class="tdesc">' + t.desc + (main ? ' · 主航线 ' + main : '') + '</span>' +
+            '<span class="tfoot"><span class="tprice"><small>¥</small>' + t.price + ' <small>起 / 成人</small></span>' +
+            '<span class="tgo">选班次 ›</span></span>' +
+          '</span></button>';
+      });
+      body.innerHTML = html;
+      return;
+    }
+    // check 页
+    var t = TYPES[stateB.type];
+    var r = curRouteB();
+    nav.innerHTML = '<button class="nav-back" data-act="back" aria-label="返回">‹</button>' +
+      '<span class="nav-title">' + t.name + ' · 选班次</span>';
+    body.classList.add('has-bar');
+    var h = '';
+    if (t.roundtrip) {
+      h += '<div class="card mode-row"><div class="mode-seg">' +
+        '<button class="' + (stateB.mode === 'one' ? 'on' : '') + '" data-act="mode" data-m="one">单程</button>' +
+        '<button class="' + (stateB.mode === 'round' ? 'on' : '') + '" data-act="mode" data-m="round">往返</button>' +
+        '</div><span class="mode-type type-tag" style="background:' + t.color + '">' + t.name + '</span></div>';
+    }
+    h += '<div class="sec-label">航线(一次选定出发与到达码头)</div><div class="wharf-chips">' +
+      routesForType(stateB.type).map(function (rt) {
+        return '<button class="wchip' + (stateB.routeId === rt.id ? ' on' : '') + '" data-act="route" data-k="' + rt.id + '">' + routeLabel(rt) + '</button>';
+      }).join('') + '</div>';
+    h += '<div class="sec-label">出发日期</div><div class="date-strip">';
+    DAYS.forEach(function (d) {
+      var ok = typeAvail(stateB.type, d.i);
+      h += '<button class="date-item' + (d.i === stateB.di ? ' on' : '') + (ok ? '' : ' off') + '"' +
+        ' data-act="date" data-di="' + d.i + '"' + (ok ? '' : ' disabled') + '>' +
+        '<div class="dw">' + d.week + '</div><div class="dd">' + d.m + '/' + d.d + '</div>' +
+        (ok ? '<div class="dot"></div>' : '<div class="dot" style="visibility:hidden"></div>') + '</button>';
+    });
+    h += '</div>';
+
+    var list = schedules(stateB.type, stateB.di, r.from, r.to);
+    h += '<div class="sec-label">' + (stateB.mode === 'round' ? '去程班次 · ' : '班次 · ') + dayLabel(stateB.di) + ' · ' + routeLabel(r) + '</div>';
+    if (!list.length) {
+      var near = nearestAvail(stateB.type);
+      h += '<div class="card empty-box"><div class="et">该航线当日暂无班次</div>' +
+        '<div class="es">可换航线,或跳到最近有票日</div>' +
+        '<div class="empty-actions"><button class="fchip" data-act="jumpDate" data-di="' + near + '">' + dayLabel(near) + ' 有票</button></div></div>';
+    } else {
+      list.forEach(function (s, idx) {
+        var sold = s.stock === 0;
+        var picked = stateB.out && stateB.out.time === s.time;
+        h += '<button class="sch-card' + (sold ? ' soldout' : '') + (picked ? ' picked' : '') + '" data-act="out" data-idx="' + idx + '"' + (sold ? ' disabled' : '') + '>' +
+          '<div class="stime">' + s.time + '</div>' +
+          '<div class="smeta"><div class="sroute">' + routeLabel(r) + ' · ' + s.dur + '</div>' + stockHtml(s.stock) + '</div>' +
+          '<div class="sright"><div class="sprice"><small>¥</small>' + s.price + '</div>' +
+          '<span class="go-btn">' + (picked ? '✓ 已选' : '选择') + '</span></div></button>';
+      });
+    }
+    // 往返:同页返程选择(返程即反向航线)
+    if (stateB.mode === 'round' && stateB.out) {
+      var rets = schedules(stateB.type, stateB.di, r.to, r.from)
+        .filter(function (x) { return x.time > stateB.out.time; });
+      h += '<div class="ret-block"><div class="sec-label">返程班次 · 同日 · ' + WHARFS[r.to].short + ' → ' + WHARFS[r.from].short + '(无需再跳页面)</div>';
+      if (!rets.length) {
+        h += '<div class="card empty-box"><div class="et">当日已无更晚返程班次</div>' +
+          '<div class="es">请选更早的去程,或改为单程</div>' +
+          '<div class="empty-actions"><button class="fchip" data-act="mode" data-m="one">改为单程</button></div></div>';
+      } else {
+        rets.forEach(function (x) {
+          var picked = stateB.ret === x.time;
+          h += '<button class="sch-card' + (picked ? ' picked' : '') + '" data-act="ret" data-t="' + x.time + '">' +
+            '<div class="stime">' + x.time + '</div>' +
+            '<div class="smeta"><div class="sroute">' + WHARFS[r.to].short + ' → ' + WHARFS[r.from].short + ' · ' + x.dur + '</div>' + stockHtml(x.stock) + '</div>' +
+            '<div class="sright"><div class="sprice"><small>¥</small>' + t.price + '</div>' +
+            '<span class="go-btn">' + (picked ? '✓ 已选' : '选择') + '</span></div></button>';
+        });
+      }
+      h += '</div>';
+    }
+    body.innerHTML = h;
+    body.__list = list;
+
+    // 底部购买条
+    var old = document.getElementById('buyBarB');
+    if (old) old.remove();
+    if (stateB.out) {
+      var bar = document.createElement('div');
+      bar.className = 'buy-bar'; bar.id = 'buyBarB';
+      var needRet = stateB.mode === 'round' && !stateB.ret;
+      bar.innerHTML =
+        '<div class="binfo">' +
+          '<div class="bt">' + dayLabel(stateB.di) + ' ' + routeLabel(r) + ' ' + stateB.out.time +
+            (stateB.ret ? ' · 返程 ' + stateB.ret : '') + '</div>' +
+          '<div class="bp">合计 ¥' + (stateB.out.price + (stateB.ret ? t.price : 0)) + (stateB.mode === 'round' ? '(往返)' : '') + '</div>' +
+        '</div>' +
+        '<button class="bgo" data-act="buy"' + (needRet ? ' disabled' : '') + '>' + (needRet ? '请选返程' : '去购买') + '</button>';
+      document.getElementById('screenB').appendChild(bar);
+    }
+  }
+
+  function successHtmlB() {
+    return '<div class="success">' +
+      '<div class="ok-ring"><svg width="36" height="36" viewBox="0 0 36 36"><path d="M10 18.5l5.5 5.5L26 12.5" fill="none" stroke="#2BB673" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>' +
+      '<div class="st1">已到达订单确认页</div>' +
+      '<div class="st2">(原型演示到此为止,后续为填写乘客与支付)</div>' +
+      '<div class="st3">从打开本页到下单,共 <b>' + counts.B + '</b> 次点击</div>' +
+      '<button class="retry" data-act="reset">重新体验</button>' +
+      '<div class="hint-back">也可返回首页换个船型体验</div></div>';
+  }
+
+  document.getElementById('screenB').addEventListener('click', function (e) {
+    var el = e.target.closest('[data-act]');
+    if (!el) return;
+    var act = el.getAttribute('data-act');
+    bump('B');
+    var s = stateB;
+    switch (act) {
+      case 'enter': {
+        var k = el.getAttribute('data-k');
+        var rts = routesForType(k);
+        s.type = k; s.di = nearestAvail(k);
+        s.mode = TYPES[k].roundtrip ? 'round' : 'one';
+        s.routeId = rts.length ? rts[0].id : null;
+        s.out = null; s.ret = null; s.screen = 'check';
+        break;
+      }
+      case 'back': s.screen = 'home'; s.success = false; break;
+      case 'mode':
+        s.mode = el.getAttribute('data-m');
+        s.ret = null;
+        if (s.mode === 'round' && s.out) {
+          var r0 = curRouteB();
+          var opts0 = schedules(s.type, s.di, r0.to, r0.from)
+            .filter(function (x) { return x.time > s.out.time; });
+          s.ret = opts0.length ? opts0[0].time : null;
+        }
+        break;
+      case 'date': case 'jumpDate':
+        s.di = parseInt(el.getAttribute('data-di'), 10); s.out = null; s.ret = null; break;
+      case 'route':
+        s.routeId = el.getAttribute('data-k'); s.out = null; s.ret = null; break;
+      case 'out': {
+        var list = document.getElementById('bodyB').__list || [];
+        s.out = list[parseInt(el.getAttribute('data-idx'), 10)];
+        s.ret = null;
+        if (s.mode === 'round') {
+          var r2 = curRouteB();
+          var opts = schedules(s.type, s.di, r2.to, r2.from)
+            .filter(function (x) { return x.time > s.out.time; });
+          s.ret = opts.length ? opts[0].time : null;
+        }
+        break;
+      }
+      case 'ret': s.ret = el.getAttribute('data-t'); break;
+      case 'buy': s.success = true; break;
+      case 'reset':
+        counts.B = 0; document.getElementById('countB').textContent = '0';
+        s = { screen: 'home', type: null, routeId: null, di: 0, mode: 'one', out: null, ret: null, success: false };
+        break;
+    }
+    stateB = s;
+    renderB();
+  });
+
+  renderA();
+  renderB();
+})();
+</script>
